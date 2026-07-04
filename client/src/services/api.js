@@ -16,7 +16,10 @@ export function setTokenGetter(getter) {
 }
 
 api.interceptors.request.use(async (config) => {
-  if (tokenGetter) {
+  const adminToken = localStorage.getItem('adminToken');
+  if (adminToken) {
+    config.headers.Authorization = `Bearer ${adminToken}`;
+  } else if (tokenGetter) {
     const token = await tokenGetter();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

@@ -38,26 +38,53 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      setFirebaseUser(fbUser);
-      if (fbUser) {
-        try {
-          await syncUser();
-        } catch {
+    const adminToken = localStorage.getItem('adminToken');
+
+    async function initAdmin() {
+      try {
+        const { data } = await api.get('/api/admin/auth/me');
+        setUser(data);
+        setFirebaseUser(null);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to restore admin session:', err);
+        localStorage.removeItem('adminToken');
+        initStudent();
+      }
+    }
+
+    let unsubscribe = null;
+    function initStudent() {
+      unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+        setFirebaseUser(fbUser);
+        if (fbUser) {
+          try {
+            await syncUser();
+          } catch {
+            setUser(null);
+          }
+        } else {
           setUser(null);
         }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+        setLoading(false);
+      });
+    }
 
-    return unsubscribe;
+    if (adminToken) {
+      initAdmin();
+    } else {
+      initStudent();
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [syncUser]);
 
   const signInWithGoogle = async () => {
     setError(null);
     try {
+      localStorage.removeItem('adminToken');
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
       console.error('Sign in failed:', err);
@@ -66,10 +93,31 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const adminLogin = async (email, password) => {
+    setError(null);
+    try {
+      const { data } = await api.post('/api/admin/auth/login', { email, password });
+      localStorage.setItem('adminToken', data.token);
+      setUser(data.user);
+      setFirebaseUser(null);
+      return data.user;
+    } catch (err) {
+      console.error('Admin login failed:', err);
+      const errMsg = err.response?.data?.message || 'Admin login failed';
+      setError(errMsg);
+      throw new Error(errMsg);
+    }
+  };
+
   const signOut = async () => {
-    await firebaseSignOut(auth);
-    setUser(null);
-    setFirebaseUser(null);
+    if (localStorage.getItem('adminToken')) {
+      localStorage.removeItem('adminToken');
+      setUser(null);
+    } else {
+      await firebaseSignOut(auth);
+      setUser(null);
+      setFirebaseUser(null);
+    }
   };
 
   const value = {
@@ -77,9 +125,10 @@ export function AuthProvider({ children }) {
     user,
     loading,
     error,
-    isAuthenticated: !!firebaseUser && !!user,
+    isAuthenticated: (!!firebaseUser && !!user) || (!!user && user.role === 'admin'),
     isAdmin: user?.role === 'admin',
     signInWithGoogle,
+    adminLogin,
     signOut,
     syncUser,
     getToken,

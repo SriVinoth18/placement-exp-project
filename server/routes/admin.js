@@ -4,8 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import Company from '../models/Company.js';
 import Experience from '../models/Experience.js';
-import { verifyFirebaseToken } from '../middleware/verifyFirebaseToken.js';
-import { adminGuard } from '../middleware/adminGuard.js';
+import { verifyAdminToken } from '../middleware/verifyAdminToken.js';
 import { slugify } from '../utils/slugify.js';
 import { uploadLogo, uploadPdf, getPublicFileUrl, uploadsDir } from '../utils/upload.js';
 
@@ -17,7 +16,7 @@ const uploadLimiter = rateLimit({
   message: { message: 'Too many upload requests, please try again later' },
 });
 
-router.use(verifyFirebaseToken, adminGuard);
+router.use(verifyAdminToken);
 
 router.get('/companies', async (_req, res) => {
   try {

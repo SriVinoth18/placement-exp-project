@@ -5,7 +5,8 @@ import AdminRoute from './components/AdminRoute';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import CompanyDetail from './pages/CompanyDetail';
-import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 
 export default function App() {
   return (
@@ -29,14 +30,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route
-            path="/admin"
+            path="/admin/dashboard"
             element={
               <AdminRoute>
-                <Admin />
+                <AdminDashboard />
               </AdminRoute>
             }
           />
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

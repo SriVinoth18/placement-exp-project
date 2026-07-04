@@ -8,6 +8,7 @@ import { initFirebaseAdmin } from './config/firebaseAdmin.js';
 import authRoutes from './routes/auth.js';
 import companyRoutes, { experienceDownloadRouter } from './routes/companies.js';
 import adminRoutes from './routes/admin.js';
+import adminAuthRoutes from './routes/adminAuth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/experiences', experienceDownloadRouter);
+app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.use((err, _req, res, _next) => {
@@ -45,6 +47,9 @@ app.use((err, _req, res, _next) => {
 
 async function start() {
   try {
+    if (!process.env.JWT_SECRET) {
+      console.warn('WARNING: JWT_SECRET is not configured in .env. Admin logins will fail.');
+    }
     initFirebaseAdmin();
     await connectDB();
 
