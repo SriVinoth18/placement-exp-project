@@ -28,10 +28,8 @@ export default function Home() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return companies;
-    return companies.filter(
-      (c) =>
-        c.name.toLowerCase().includes(query) ||
-        c.description?.toLowerCase().includes(query)
+    return companies.filter((c) =>
+      c.name.toLowerCase().includes(query)
     );
   }, [companies, search]);
 
