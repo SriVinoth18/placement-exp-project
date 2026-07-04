@@ -16,13 +16,19 @@ export function setTokenGetter(getter) {
 }
 
 api.interceptors.request.use(async (config) => {
-  const adminToken = localStorage.getItem('adminToken');
-  if (adminToken) {
-    config.headers.Authorization = `Bearer ${adminToken}`;
-  } else if (tokenGetter) {
-    const token = await tokenGetter();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  const isAdminRequest = config.url && (config.url.startsWith('/api/admin') || config.url.includes('/api/admin'));
+
+  if (isAdminRequest) {
+    const adminToken = localStorage.getItem('adminToken');
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    }
+  } else {
+    if (tokenGetter) {
+      const token = await tokenGetter();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
   }
   return config;

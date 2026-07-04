@@ -1,9 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import AdminCompanies from '../components/AdminCompanies';
 
 export default function AdminDashboard() {
-  const { user, signOut } = useAuth();
+  const { user, adminSignOut } = useAuth();
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCompanies = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/api/admin/companies');
+      setCompanies(data);
+    } catch (err) {
+      console.error('Failed to fetch companies for dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [fetchCompanies]);
 
   const sidebarItems = [
     'Dashboard',
@@ -15,10 +35,15 @@ export default function AdminDashboard() {
     'Settings',
   ];
 
+  // Dashboard Stats Calculations
+  const totalCompanies = companies.length;
+  const activeCompanies = companies.filter((c) => c.isActive).length;
+  const inactiveCompanies = companies.filter((c) => !c.isActive).length;
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans">
       {/* Left Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col justify-between">
+      <aside className="w-64 bg-slate-900 text-white flex flex-col justify-between shrink-0">
         <div>
           <div className="h-16 flex items-center justify-center border-b border-slate-800">
             <span className="text-xl font-bold tracking-wider text-brand-500">ADMIN PORTAL</span>
@@ -41,7 +66,7 @@ export default function AdminDashboard() {
         </div>
         <div className="p-4 border-t border-slate-800">
           <button
-            onClick={signOut}
+            onClick={adminSignOut}
             className="w-full flex items-center justify-center px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-950/30 hover:text-red-300 rounded-xl border border-red-900/30 transition-all duration-150"
           >
             Logout
@@ -52,7 +77,7 @@ export default function AdminDashboard() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-slate-800">{activeTab}</h2>
           </div>
@@ -67,7 +92,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <button
-              onClick={signOut}
+              onClick={adminSignOut}
               className="text-sm font-medium text-slate-600 hover:text-red-600 transition-colors"
             >
               Logout
@@ -84,45 +109,42 @@ export default function AdminDashboard() {
                 <p className="text-sm text-slate-500">Here's a quick overview of the placement platform activity.</p>
               </div>
 
-              {/* Placeholder Stats Cards */}
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Dynamic Stats Cards */}
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Total Companies */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Companies</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-2">10</p>
+                    <p className="text-3xl font-bold text-slate-900 mt-2">{totalCompanies}</p>
                   </div>
-                  <span className="text-xs text-slate-400">Placeholder count</span>
+                  <span className="text-xs text-slate-400">Registered on platform</span>
                 </div>
 
-                {/* Total PDFs */}
+                {/* Active Companies */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total PDFs</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-2">0</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Companies</p>
+                    <p className="text-3xl font-bold text-slate-900 mt-2">{activeCompanies}</p>
                   </div>
-                  <span className="text-xs text-slate-400">Placeholder count</span>
+                  <span className="text-xs text-slate-400">Visible to students</span>
                 </div>
 
-                {/* Total Users */}
+                {/* Inactive Companies */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Users</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-2">0</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Inactive Companies</p>
+                    <p className="text-3xl font-bold text-slate-900 mt-2">{inactiveCompanies}</p>
                   </div>
-                  <span className="text-xs text-slate-400">Placeholder count</span>
-                </div>
-
-                {/* Total Downloads */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Downloads</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-2">0</p>
-                  </div>
-                  <span className="text-xs text-slate-400">Placeholder count</span>
+                  <span className="text-xs text-slate-400">Hidden from students</span>
                 </div>
               </div>
             </div>
+          ) : activeTab === 'Companies' ? (
+            <AdminCompanies
+              companies={companies}
+              loading={loading}
+              onRefresh={fetchCompanies}
+            />
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 border-dashed p-12 text-center">
               <h3 className="text-lg font-semibold text-slate-800">{activeTab} Section</h3>

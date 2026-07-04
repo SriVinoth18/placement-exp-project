@@ -38,7 +38,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const adminToken = localStorage.getItem('adminToken');
+    const isAdminPath = window.location.pathname.startsWith('/admin');
+    const adminToken = isAdminPath ? localStorage.getItem('adminToken') : null;
 
     async function initAdmin() {
       try {
@@ -81,10 +82,23 @@ export function AuthProvider({ children }) {
     };
   }, [syncUser]);
 
+  // Sync admin logout across tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'adminToken') {
+        const isAdminPath = window.location.pathname.startsWith('/admin');
+        if (isAdminPath && !e.newValue) {
+          setUser(null);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const signInWithGoogle = async () => {
     setError(null);
     try {
-      localStorage.removeItem('adminToken');
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
       console.error('Sign in failed:', err);
@@ -109,14 +123,20 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const signOut = async () => {
-    if (localStorage.getItem('adminToken')) {
-      localStorage.removeItem('adminToken');
+  // Student logout: only signs out of Firebase, does not touch adminToken
+  const studentSignOut = async () => {
+    await firebaseSignOut(auth);
+    setFirebaseUser(null);
+    if (user && user.role !== 'admin') {
       setUser(null);
-    } else {
-      await firebaseSignOut(auth);
+    }
+  };
+
+  // Admin logout: only removes adminToken, does not touch Firebase
+  const adminSignOut = async () => {
+    localStorage.removeItem('adminToken');
+    if (user && user.role === 'admin') {
       setUser(null);
-      setFirebaseUser(null);
     }
   };
 
@@ -129,7 +149,8 @@ export function AuthProvider({ children }) {
     isAdmin: user?.role === 'admin',
     signInWithGoogle,
     adminLogin,
-    signOut,
+    signOut: studentSignOut,
+    adminSignOut,
     syncUser,
     getToken,
   };
