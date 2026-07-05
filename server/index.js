@@ -9,6 +9,8 @@ import authRoutes from './routes/auth.js';
 import companyRoutes, { experienceDownloadRouter } from './routes/companies.js';
 import adminRoutes from './routes/admin.js';
 import adminAuthRoutes from './routes/adminAuth.js';
+import { initCloudinary } from './config/cloudinary.js';
+import adminExperiencesRoutes from './routes/adminExperiences.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/experiences', experienceDownloadRouter);
 app.use('/api/admin/auth', adminAuthRoutes);
+app.use('/api/admin/experiences', adminExperiencesRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.use((err, _req, res, _next) => {
@@ -49,6 +52,11 @@ async function start() {
   try {
     if (!process.env.JWT_SECRET) {
       console.warn('WARNING: JWT_SECRET is not configured in .env. Admin logins will fail.');
+    }
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.warn('WARNING: Cloudinary credentials are not configured in .env. PDF uploads will fail.');
+    } else {
+      initCloudinary();
     }
     initFirebaseAdmin();
     await connectDB();

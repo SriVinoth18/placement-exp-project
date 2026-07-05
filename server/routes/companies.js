@@ -85,6 +85,16 @@ experienceDownloadRouter.get('/:id/download', verifyFirebaseToken, async (req, r
       return res.status(404).json({ message: 'Experience not found' });
     }
 
+    // Increment downloadCount
+    experience.downloadCount = (experience.downloadCount || 0) + 1;
+    await experience.save();
+
+    // If it's a Cloudinary asset, redirect to it
+    if (experience.cloudinaryUrl) {
+      return res.redirect(experience.cloudinaryUrl);
+    }
+
+    // Legacy local files fallback
     const filename = path.basename(experience.pdfUrl);
     const filePath = path.join(__dirname, '..', 'uploads', filename);
 

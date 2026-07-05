@@ -15,11 +15,28 @@ const experienceSchema = new mongoose.Schema(
     },
     pdfUrl: {
       type: String,
-      required: true,
+      required: false,
     },
     fileName: {
       type: String,
       default: '',
+    },
+    cloudinaryUrl: {
+      type: String,
+      required: true,
+    },
+    cloudinaryPublicId: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    downloadCount: {
+      type: Number,
+      default: 0,
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,

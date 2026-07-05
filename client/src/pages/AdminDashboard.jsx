@@ -2,28 +2,42 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import AdminCompanies from '../components/AdminCompanies';
+import AdminExperiences from '../components/AdminExperiences';
 
 export default function AdminDashboard() {
   const { user, adminSignOut } = useAuth();
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [companies, setCompanies] = useState([]);
+  const [experiences, setExperiences] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCompanies = useCallback(async () => {
-    setLoading(true);
     try {
       const { data } = await api.get('/api/admin/companies');
       setCompanies(data);
     } catch (err) {
       console.error('Failed to fetch companies for dashboard:', err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
+  const fetchExperiences = useCallback(async () => {
+    try {
+      const { data } = await api.get('/api/admin/experiences');
+      setExperiences(data);
+    } catch (err) {
+      console.error('Failed to fetch experiences for dashboard:', err);
+    }
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    setLoading(true);
+    await Promise.all([fetchCompanies(), fetchExperiences()]);
+    setLoading(false);
+  }, [fetchCompanies, fetchExperiences]);
+
   useEffect(() => {
-    fetchCompanies();
-  }, [fetchCompanies]);
+    refreshAll();
+  }, [refreshAll]);
 
   const sidebarItems = [
     'Dashboard',
@@ -39,6 +53,8 @@ export default function AdminDashboard() {
   const totalCompanies = companies.length;
   const activeCompanies = companies.filter((c) => c.isActive).length;
   const inactiveCompanies = companies.filter((c) => !c.isActive).length;
+  const totalPdfs = experiences.length;
+  const totalDownloads = experiences.reduce((sum, exp) => sum + (exp.downloadCount || 0), 0);
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans">
@@ -110,32 +126,32 @@ export default function AdminDashboard() {
               </div>
 
               {/* Dynamic Stats Cards */}
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {/* Total Companies */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Companies</p>
                     <p className="text-3xl font-bold text-slate-900 mt-2">{totalCompanies}</p>
                   </div>
-                  <span className="text-xs text-slate-400">Registered on platform</span>
+                  <span className="text-xs text-slate-450 text-slate-500">Active: {activeCompanies} | Inactive: {inactiveCompanies}</span>
                 </div>
 
-                {/* Active Companies */}
+                {/* Total PDFs */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Companies</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-2">{activeCompanies}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total PDFs</p>
+                    <p className="text-3xl font-bold text-slate-900 mt-2">{totalPdfs}</p>
                   </div>
-                  <span className="text-xs text-slate-400">Visible to students</span>
+                  <span className="text-xs text-slate-500">Cloudinary-stored assets</span>
                 </div>
 
-                {/* Inactive Companies */}
+                {/* Total Downloads */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Inactive Companies</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-2">{inactiveCompanies}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Downloads</p>
+                    <p className="text-3xl font-bold text-slate-900 mt-2">{totalDownloads}</p>
                   </div>
-                  <span className="text-xs text-slate-400">Hidden from students</span>
+                  <span className="text-xs text-slate-500">Accumulated downloads</span>
                 </div>
               </div>
             </div>
@@ -143,7 +159,14 @@ export default function AdminDashboard() {
             <AdminCompanies
               companies={companies}
               loading={loading}
-              onRefresh={fetchCompanies}
+              onRefresh={refreshAll}
+            />
+          ) : activeTab === 'Experience PDFs' ? (
+            <AdminExperiences
+              experiences={experiences}
+              companies={companies}
+              loading={loading}
+              onRefresh={refreshAll}
             />
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 border-dashed p-12 text-center">
